@@ -23,6 +23,11 @@
 
     <build>
         <finalName>${project.artifactId}</finalName>
+        <!--
+        特别注意：
+        项目仅仅是为了演示配置方便，直接在parent的build部分做了插件配置和运行定义。
+        但是实际项目中需要把这些定义只放到spring boot模块项目（可优化使用pluginManagement形式），避免干扰其他util、common等模块项目
+        -->
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
