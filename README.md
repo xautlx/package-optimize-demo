@@ -1,3 +1,11 @@
+# Spring Boot部署JAR文件瘦身优化经验分享
+
+
+
+## 
+
+## 瘦身打怪升级版
+
 ### Level 0：常规的Fat Jar构建
 
 参考项目目录：package-optimize-level0
@@ -47,6 +55,8 @@ java -jar package-optimize-app1/target/package-optimize-app1.jar
 * 降低单个微服务jar的文件大小，以便部署过程秒传文件。
 
 **主要配置：**
+
+重点配置说明请详见如下注释说明：
 
 ~~~xml
 <build>
@@ -132,6 +142,8 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
 
 **主要配置：**
 
+重点配置说明请详见如下注释说明：
+
 ~~~xml
 <build>
     <finalName>${project.artifactId}</finalName>
@@ -141,6 +153,20 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
     但是实际项目中需要把这些定义只放到spring boot模块项目（可优化使用pluginManagement形式），避免干扰其他util、common等模块项目
     -->
     <plugins>
+        <!-- 基于maven-jar-plugin插件实现把依赖jar定义写入输出jar的META-INFO/MANIFEST文件 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+                <archive>
+                    <manifest>
+                        <addClasspath>true</addClasspath>
+                        <classpathPrefix>lib/</classpathPrefix>
+                        <useUniqueVersions>false</useUniqueVersions>
+                    </manifest>
+                </archive>
+            </configuration>
+        </plugin>
         <!-- 拷贝项目所有依赖jar文件到构建lib目录下 -->
         <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -153,10 +179,14 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
                         <goal>copy-dependencies</goal>
                     </goals>
                     <configuration>
-                        <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                        <!--
+                        各子模块按照实际层级定义各模块对应的属性值，检查所有微服务模块依赖jar文件合并复制到同一个目录
+                        详见各子模块中 boot-jar-output 属性定义
+                        -->
+                        <outputDirectory>${boot-jar-output}/lib</outputDirectory>
                         <excludeTransitive>false</excludeTransitive>
                         <stripVersion>false</stripVersion>
-                        <silent>true</silent>
+                        <silent>false</silent>
                     </configuration>
                 </execution>
             </executions>
@@ -174,6 +204,13 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
                     </include>
                 </includes>
                 <layout>ZIP</layout>
+                <!--
+                基于maven-jar-plugin输出微服务jar文件进行二次spring boot重新打包文件的输出目录
+                所有微服务构建输出jar文件统一输出到与lib同一个目录，便于共同引用同一个lib目录
+                详见各子模块中boot-jar-output属性定义
+                -->
+                <!--  -->
+                <outputDirectory>${boot-jar-output}</outputDirectory>
             </configuration>
             <executions>
                 <execution>
@@ -187,21 +224,235 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
 </build>
 ~~~
 
+所有lib目录文件及各微服务构建jar聚合到devops公共目录。
+
+微服务jar文件中的META-INFO/MANIFEST文件中会生成根据模块依赖组件列表的Class-Path属性，
+从而避免了不同版本jar：
+
+~~~
+Class-Path: lib/spring-boot-starter-web-2.4.3.jar lib/spring-boot-starte
+ r-2.4.3.jar lib/spring-boot-2.4.3.jar lib/spring-boot-autoconfigure-2.4
+ .3.jar lib/spring-boot-starter-logging-2.4.3.jar lib/logback-classic-1.
+ 2.3.jar lib/logback-core-1.2.3.jar lib/slf4j-api-1.7.30.jar lib/log4j-t
+ o-slf4j-2.13.3.jar lib/log4j-api-2.13.3.jar lib/jul-to-slf4j-1.7.30.jar
+  lib/jakarta.annotation-api-1.3.5.jar lib/spring-core-5.3.4.jar lib/spr
+ ing-jcl-5.3.4.jar lib/snakeyaml-1.27.jar lib/spring-boot-starter-json-2
+ .4.3.jar lib/jackson-databind-2.11.4.jar lib/jackson-annotations-2.11.4
+ .jar lib/jackson-core-2.11.4.jar lib/jackson-datatype-jdk8-2.11.4.jar l
+ ib/jackson-datatype-jsr310-2.11.4.jar lib/jackson-module-parameter-name
+ s-2.11.4.jar lib/spring-boot-starter-tomcat-2.4.3.jar lib/tomcat-embed-
+ core-9.0.43.jar lib/jakarta.el-3.0.3.jar lib/tomcat-embed-websocket-9.0
+ .43.jar lib/spring-web-5.3.4.jar lib/spring-beans-5.3.4.jar lib/spring-
+ webmvc-5.3.4.jar lib/spring-aop-5.3.4.jar lib/spring-context-5.3.4.jar 
+ lib/spring-expression-5.3.4.jar
+~~~
+
 **配置输出：**
 
 ~~~shell script
-cd package-optimize-level1
+cd package-optimize-level2
 mvn clean install
 
-ls -lh package-optimize-app1/target/package-optimize-app1.jar
--rw-r--r--  1 lixia  wheel   149K Feb 24 20:56 package-optimize-app1/target/package-optimize-app1.jar
+ls -lh devops/
+total 912
+drwxr-xr-x  34 lixia  wheel   1.1K Feb 24 22:27 lib
+-rw-r--r--   1 lixia  wheel   150K Feb 24 22:31 package-optimize-app1.jar
+-rw-r--r--   1 lixia  wheel   149K Feb 24 22:31 package-optimize-app2.jar
+-rw-r--r--   1 lixia  wheel   149K Feb 24 22:31 package-optimize-app3.jar
 
-java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1.jar
+java -jar devops/package-optimize-app1.jar
 ~~~
 
 
 **实现效果：**
 
-* 单一构建根据项目依赖组件量输出jar一般仅有一两百KB，基本可以做到秒传。
-* 这种方式有个明显问题：假如有十来个微服务，每个服务一个jar和一个lib目录文件，首次部署也差不多需要传输一两个GB文件。
+* 启动过程不再需要 -Djava.ext.dirs=lib 参数定义。
+* 所有微服务jar引用所有项目合并依赖组件的公共目录，部署文件总计大小一般在两三百MB。
+* 通过定制每个微服务jar文件中的META-INFO/MANIFEST文件中的Class-Path明确指明依赖版本组件类，解决各微服务不同组件版本冲突问题。
 
+### Level 3：支持system引入的非官方的三方依赖组件
+
+参考项目目录：package-optimize-level3
+
+**解决问题：**
+
+* 有些非官方三方的诸如sdk jar，一种做法是提交到Maven本地私服中去引用，那和普通依赖jar处理相同；
+但是在没有maven私服的情况下，常见的简化做法都是直接在项目中放置依赖jar然后在pom中以system scope方式定义。
+* 对于在pom中是以systemPath方式引入的，maven-jar-plugin组件没有直接参数声明包含指定scope的组件，
+如果不做特殊处理META-INFO/MANIFEST中不会出现这些scope定义的组件，导致运行时类找不到。
+
+**主要配置：**
+
+重点配置说明请详见如下注释说明：
+
+~~~xml
+<build>
+    <finalName>${project.artifactId}</finalName>
+    <!--
+    特别注意：
+    项目仅仅是为了演示配置方便，直接在parent的build部分做了插件配置和运行定义。
+    但是实际项目中需要把这些定义只放到spring boot模块项目（可优化使用pluginManagement形式），避免干扰其他util、common等模块项目
+    -->
+    <plugins>
+        <!-- 基于maven-jar-plugin插件实现把依赖jar定义写入输出jar的META-INFO/MANIFEST文件 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+                <archive>
+                    <manifest>
+                        <addClasspath>true</addClasspath>
+                        <classpathPrefix>lib/</classpathPrefix>
+                        <useUniqueVersions>false</useUniqueVersions>
+                    </manifest>
+                    <manifestEntries>
+                        <!--
+                        有些非官方三方的诸如sdk jar在pom中是以systemPath方式引入的，maven-jar-plugin组件没有直接参数声明包含指定scope的组件
+                        通过使用额外定义 Class-Path 值来追加指定依赖组件列表，在子模块按实际情况指定 jar-manifestEntries-classpath 值即可
+                        例如(注意前面个点字符及各空格分隔符)：. lib/xxx-1.0.0.jar lib/yyy-2.0.0.jar
+                        详见各子模块中 boot-jar-output 属性定义示例
+                        -->
+                        <Class-Path>${jar-manifestEntries-classpath}</Class-Path>
+                    </manifestEntries>
+                </archive>
+            </configuration>
+        </plugin>
+        <!-- 拷贝项目所有依赖jar文件到构建lib目录下 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>copy-dependencies</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>copy-dependencies</goal>
+                    </goals>
+                    <configuration>
+                        <!--
+                        各子模块按照实际层级定义各模块对应的属性值，检查所有微服务模块依赖jar文件合并复制到同一个目录
+                        详见各子模块中 boot-jar-output 属性定义
+                        -->
+                        <outputDirectory>${boot-jar-output}/lib</outputDirectory>
+                        <excludeTransitive>false</excludeTransitive>
+                        <stripVersion>false</stripVersion>
+                        <silent>false</silent>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+        <!-- Spring Boot模块jar构建 -->
+        <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <configuration>
+                <includes>
+                    <!-- 不存在的include引用，相当于排除所有maven依赖jar，没有任何三方jar文件打入输出jar -->
+                    <include>
+                        <groupId>null</groupId>
+                        <artifactId>null</artifactId>
+                    </include>
+                </includes>
+                <layout>ZIP</layout>
+                <!--
+                基于maven-jar-plugin输出微服务jar文件进行二次spring boot重新打包文件的输出目录
+                所有微服务构建输出jar文件统一输出到与lib同一个目录，便于共同引用同一个lib目录
+                详见各子模块中boot-jar-output属性定义
+                -->
+                <!--  -->
+                <outputDirectory>${boot-jar-output}</outputDirectory>
+            </configuration>
+            <executions>
+                <execution>
+                    <goals>
+                        <goal>repackage</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+~~~
+
+子模块主要配置：
+
+~~~
+    <properties>
+        <!-- 按各模块实际目录层次定义相对数据，使所有服务模块输出资源汇聚到相同目录 -->
+        <boot-jar-output>../devops</boot-jar-output>
+        <!--
+        有些供应商的sdk jar在pom中是以systemPath方式引入的，maven-jar-plugin组件没有直接参数声明包含指定scope的组件
+        通过使用额外定义 Class-Path 值来追加指定依赖组件列表，按实际情况指定 jar-manifestEntries-classpath 值即可
+        例如(注意前面个点字符及各空格分隔符，lib后面部分是 artifactId-version.jar 格式而不是实际文件名)：. lib/xxx-1.0.0.jar lib/yyy-2.0.0.jar
+        -->
+        <jar-manifestEntries-classpath>. lib/hik-sdk-1.0.0.jar</jar-manifestEntries-classpath>
+    </properties>
+    <dependencies>
+        <!-- 以相对路径方式定义非官方三方依赖组件 -->
+        <dependency>
+            <groupId>com.hik</groupId>
+            <artifactId>hik-sdk</artifactId>
+            <version>1.0.0</version>
+            <scope>system</scope>
+            <systemPath>${project.basedir}/lib/hik-sdk-1.0.0.jar</systemPath>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+    </dependencies>
+~~~
+
+微服务输出jar文件中的META-INFO/MANIFEST文件中会生成根据模块依赖组件列表的Class-Path属性，
+最前面会追加 jar-manifestEntries-classpath 属性定义值：
+
+~~~
+Class-Path: . lib/hik-sdk-1.0.0.jar lib/spring-boot-starter-web-2.4.3.ja
+ r lib/spring-boot-starter-2.4.3.jar lib/spring-boot-2.4.3.jar lib/sprin
+ g-boot-autoconfigure-2.4.3.jar lib/spring-boot-starter-logging-2.4.3.ja
+ r lib/logback-classic-1.2.3.jar lib/logback-core-1.2.3.jar lib/slf4j-ap
+ i-1.7.30.jar lib/log4j-to-slf4j-2.13.3.jar lib/log4j-api-2.13.3.jar lib
+ /jul-to-slf4j-1.7.30.jar lib/jakarta.annotation-api-1.3.5.jar lib/sprin
+ g-core-5.3.4.jar lib/spring-jcl-5.3.4.jar lib/snakeyaml-1.27.jar lib/sp
+ ring-boot-starter-json-2.4.3.jar lib/jackson-databind-2.11.4.jar lib/ja
+ ckson-annotations-2.11.4.jar lib/jackson-core-2.11.4.jar lib/jackson-da
+ tatype-jdk8-2.11.4.jar lib/jackson-datatype-jsr310-2.11.4.jar lib/jacks
+ on-module-parameter-names-2.11.4.jar lib/spring-boot-starter-tomcat-2.4
+ .3.jar lib/tomcat-embed-core-9.0.43.jar lib/jakarta.el-3.0.3.jar lib/to
+ mcat-embed-websocket-9.0.43.jar lib/spring-web-5.3.4.jar lib/spring-bea
+ ns-5.3.4.jar lib/spring-webmvc-5.3.4.jar lib/spring-aop-5.3.4.jar lib/s
+ pring-context-5.3.4.jar lib/spring-expression-5.3.4.jar
+~~~
+
+**配置输出：**
+
+~~~shell script
+cd package-optimize-level3
+mvn clean install
+
+ls -lh devops/
+total 912
+drwxr-xr-x  36 lixia  wheel   1.1K Feb 24 23:14 lib
+-rw-r--r--@  1 lixia  wheel   150K Feb 24 23:14 package-optimize-app1.jar
+-rw-r--r--   1 lixia  wheel   150K Feb 24 23:14 package-optimize-app2.jar
+-rw-r--r--   1 lixia  wheel   150K Feb 24 23:14 package-optimize-app3.jar
+
+java -jar devops/package-optimize-app1.jar
+~~~
+
+
+### 最终实现效果
+
+* 所有服务的依赖组件合并到一个目录，总计大小在两三百MB，首次部署传输效率明显提速。
+* 各微服务一两百KB大小，日常紧急修复Bug更新个别jar基本就是瞬间秒传。
+* 各微服务jar中各自定义依赖指定版本组件列表，不会出现组件不同版本加载冲突问题。
+* 非官方的三方依赖组件也能正常引用处理。
+
+### 特别提示
+
+上述通过部署组件分离处理后，日常更新至需要传输一两百KB的业务jar文件即可。
+但是如果某个项目的maven依赖组件做了变更配置，则需要主要把变更的jar文件要同步到公共的lib目录。
+
+最小化变更jar文件的小技巧：可以把构建部署资源目录提交到GIT库，以后每次版本发布同时commit到GIT库，
+通过提交视图可以清晰的识别出本次版本发布的最小化jar文件清单，包括微服务jar和依赖jar变更文件，以此最小化传输文件。

@@ -4,15 +4,16 @@
 	<modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.entdiy.example</groupId>
-        <artifactId>package-optimize-level1</artifactId>
+        <artifactId>package-optimize-level2</artifactId>
         <version>0.0.1-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>com.entdiy.example</groupId>
-	<artifactId>package-optimize-app3</artifactId>
+	<artifactId>package-optimize-app2</artifactId>
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>8</java.version>
+        <boot-jar-output>../devops</boot-jar-output>
 	</properties>
 	<dependencies>
 
