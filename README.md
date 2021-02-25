@@ -43,7 +43,7 @@
 
 **主要配置：**
 
-~~~xml
+```xml
 <build>
     <finalName>${project.artifactId}</finalName>
     <!--
@@ -58,11 +58,11 @@
         </plugin>
     </plugins>
 </build>
-~~~
+```
 
 **配置输出：**
 
-~~~shell script
+```
 cd package-optimize-level0
 mvn clean install
 
@@ -70,7 +70,7 @@ ls -lh package-optimize-app1/target/package-optimize-app1.jar
 -rw-r--r--  1 lixia  wheel    16M Feb 24 21:06 package-optimize-app1/target/package-optimize-app1.jar
 
 java -jar package-optimize-app1/target/package-optimize-app1.jar
-~~~
+```
 
 **重点说明：**
 
@@ -89,7 +89,7 @@ java -jar package-optimize-app1/target/package-optimize-app1.jar
 
 重点配置说明请详见如下注释说明：
 
-~~~xml
+```xml
 <build>
     <finalName>${project.artifactId}</finalName>
     <!--
@@ -142,11 +142,11 @@ java -jar package-optimize-app1/target/package-optimize-app1.jar
         </plugin>
     </plugins>
 </build>
-~~~
+```
 
 **配置输出：**
 
-~~~shell script
+```
 cd package-optimize-level1
 mvn clean install
 
@@ -154,7 +154,7 @@ ls -lh package-optimize-app1/target/package-optimize-app1.jar
 -rw-r--r--  1 lixia  wheel   149K Feb 24 20:56 package-optimize-app1/target/package-optimize-app1.jar
 
 java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1.jar
-~~~
+```
 
 
 **实现效果：**
@@ -175,7 +175,7 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
 
 重点配置说明请详见如下注释说明：
 
-~~~xml
+```xml
 <build>
     <finalName>${project.artifactId}</finalName>
     <!--
@@ -253,14 +253,14 @@ java -jar -Djava.ext.dirs=lib package-optimize-app1/target/package-optimize-app1
         </plugin>
     </plugins>
 </build>
-~~~
+```
 
 所有lib目录文件及各微服务构建jar聚合到devops公共目录。
 
 微服务jar文件中的META-INFO/MANIFEST文件中会生成根据模块依赖组件列表的Class-Path属性，
 从而避免了不同版本jar：
 
-~~~
+```
 Class-Path: lib/spring-boot-starter-web-2.4.3.jar lib/spring-boot-starte
  r-2.4.3.jar lib/spring-boot-2.4.3.jar lib/spring-boot-autoconfigure-2.4
  .3.jar lib/spring-boot-starter-logging-2.4.3.jar lib/logback-classic-1.
@@ -276,11 +276,11 @@ Class-Path: lib/spring-boot-starter-web-2.4.3.jar lib/spring-boot-starte
  .43.jar lib/spring-web-5.3.4.jar lib/spring-beans-5.3.4.jar lib/spring-
  webmvc-5.3.4.jar lib/spring-aop-5.3.4.jar lib/spring-context-5.3.4.jar 
  lib/spring-expression-5.3.4.jar
-~~~
+```
 
 **配置输出：**
 
-~~~shell script
+```
 cd package-optimize-level2
 mvn clean install
 
@@ -292,7 +292,7 @@ drwxr-xr-x  34 lixia  wheel   1.1K Feb 24 22:27 lib
 -rw-r--r--   1 lixia  wheel   149K Feb 24 22:31 package-optimize-app3.jar
 
 java -jar devops/package-optimize-app1.jar
-~~~
+```
 
 
 **实现效果：**
@@ -316,7 +316,7 @@ java -jar devops/package-optimize-app1.jar
 
 重点配置说明请详见如下注释说明：
 
-~~~xml
+```xml
 <build>
     <finalName>${project.artifactId}</finalName>
     <!--
@@ -403,11 +403,11 @@ java -jar devops/package-optimize-app1.jar
         </plugin>
     </plugins>
 </build>
-~~~
+```
 
 子模块主要配置：
 
-~~~
+```
     <properties>
         <!-- 按各模块实际目录层次定义相对数据，使所有服务模块输出资源汇聚到相同目录 -->
         <boot-jar-output>../devops</boot-jar-output>
@@ -433,12 +433,12 @@ java -jar devops/package-optimize-app1.jar
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
     </dependencies>
-~~~
+```
 
 微服务输出jar文件中的META-INFO/MANIFEST文件中会生成根据模块依赖组件列表的Class-Path属性，
 最前面会追加 jar-manifestEntries-classpath 属性定义值：
 
-~~~
+```
 Class-Path: . lib/hik-sdk-1.0.0.jar lib/spring-boot-starter-web-2.4.3.ja
  r lib/spring-boot-starter-2.4.3.jar lib/spring-boot-2.4.3.jar lib/sprin
  g-boot-autoconfigure-2.4.3.jar lib/spring-boot-starter-logging-2.4.3.ja
@@ -454,11 +454,11 @@ Class-Path: . lib/hik-sdk-1.0.0.jar lib/spring-boot-starter-web-2.4.3.ja
  mcat-embed-websocket-9.0.43.jar lib/spring-web-5.3.4.jar lib/spring-bea
  ns-5.3.4.jar lib/spring-webmvc-5.3.4.jar lib/spring-aop-5.3.4.jar lib/s
  pring-context-5.3.4.jar lib/spring-expression-5.3.4.jar
-~~~
+```
 
 **配置输出：**
 
-~~~shell script
+```
 cd package-optimize-level3
 mvn clean install
 
@@ -470,20 +470,20 @@ drwxr-xr-x  36 lixia  wheel   1.1K Feb 24 23:14 lib
 -rw-r--r--   1 lixia  wheel   150K Feb 24 23:14 package-optimize-app3.jar
 
 java -jar devops/package-optimize-app1.jar
-~~~
+```
 
 
-### 最终实现效果
+## 最终实现效果
 
 * 所有服务的依赖组件合并到一个目录，总计大小在两三百MB，首次部署传输效率明显提速。
 * 各微服务jar一两百KB大小，日常紧急修复Bug更新个别jar基本就是瞬间秒传。
 * 各微服务jar中各自定义依赖指定版本组件列表，不会出现组件不同版本加载冲突问题。
 * 非官方的三方依赖组件也能正常引用处理。
 
-### 特别提示
+## 特别提示
 
-上述通过部署组件分离处理后，日常更新至需要传输一两百KB的业务jar文件即可。
-但是如果某个项目的maven依赖组件做了变更配置，则需要主要把变更的jar文件要同步到公共的lib目录。
+上述通过部署组件分离处理后，日常更新只需要传输一两百KB的业务jar文件即可。
+但是如果某个项目的maven依赖组件做了变更配置，则需要注意把变更的jar文件要同步到公共的lib目录。
 
 最小化变更jar文件的小技巧：可以把构建部署资源目录提交到GIT库，以后每次版本发布同时commit到GIT库，
 通过提交视图可以清晰的识别出lib目录下和业务jar本次版本发布的变更文件清单，包括微服务jar和依赖jar变更文件，以此最小化传输文件。
