@@ -6,7 +6,7 @@
 
 * [https://github.com/xautlx/package-optimize-demo](https://github.com/xautlx/package-optimize-demo)
 
-相关代码和配置均实际执行测试过，如在验证过程发现有任何问题可Issue反馈以便及时更正，感谢支持！
+相关代码和配置均实际执行测试过（基于OpenJDK8环境，其余JDK未做验证，如-Djava.ext.dirs=lib等参数和JDK版本有关，注意对应调整），如在验证过程发现有任何问题可Issue反馈以便及时更正，感谢支持！
 
 ## 概要说明
 
